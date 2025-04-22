@@ -343,6 +343,48 @@ If asked your purpose, say: “I’m here to make life easier, one thought at a 
       }
     }
 
+    <!-- Dot Section -->
+<div style="text-align: center; margin-top: 20px;">
+  <!-- The Dot -->
+  <div id="colorDot" style="
+    width: 50px; 
+    height: 50px; 
+    border-radius: 50%; 
+    background-color: red; /* Default color */
+    display: inline-block;
+  "></div>
+  <!-- Button to Change Color -->
+  <button onclick="changeDotColor()" style="
+    display: block; 
+    margin: 10px auto; 
+    padding: 10px 20px; 
+    background-color: #58a6ff; 
+    border: none; 
+    border-radius: 6px; 
+    color: white; 
+    font-weight: bold; 
+    cursor: pointer;
+    font-family: 'Julius Sans One', sans-serif;
+  ">Change Dot Color</button>
+</div>
+
+<script>
+  function changeDotColor() {
+    // Example colors array
+    const colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
+    
+    // Pick a random color
+    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+    
+    // Change the dot's color
+    const dot = document.getElementById('colorDot');
+    dot.style.backgroundColor = randomColor;
+
+    // Log the action (optional)
+    console.log(`Dot color changed to: ${randomColor}`);
+  }
+</script>
+
 
   </script>
 </body>
