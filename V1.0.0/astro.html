@@ -103,6 +103,7 @@
       display: inline-flex;
       align-items: center;
       gap: 8px;
+      margin-top: 10px;
     }
 
     .toggle-switch input[type="checkbox"] {
@@ -131,6 +132,38 @@
     .toggle-switch input[type="checkbox"]:checked::before {
       transform: translateX(20px);
       background-color: #58a6ff;
+    }
+
+    .add-control-btn {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background-color: #28a745;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      font-family: 'Julius Sans One', sans-serif;
+    }
+
+    .add-control-btn:hover {
+      background-color: #218838;
+    }
+
+    .new-chat-btn {
+      margin-top: 10px;
+      padding: 8px 12px;
+      background-color: #dc3545;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      font-family: 'Julius Sans One', sans-serif;
+    }
+
+    .new-chat-btn:hover {
+      background-color: #c82333;
     }
 
     /* Discreet slider styling */
@@ -195,6 +228,15 @@
       <button onclick="sendMessage()">Send</button>
     </div>
 
+    <!-- Controls Section -->
+    <div id="controlsSection">
+      <div id="controlsContainer"></div>
+      <button id="addControlBtn" class="add-control-btn">+ Add Control</button>
+    </div>
+
+    <!-- New Chat Button -->
+    <button id="newChatBtn" class="new-chat-btn">+ New Chat</button>
+
     <!-- Discreet Max Tokens Slider -->
     <div class="token-slider-container">
       Max Tokens:
@@ -210,11 +252,15 @@
     const proSpeakToggle= document.getElementById('proSpeakToggle');
     const tokenSlider   = document.getElementById('tokenSlider');
     const tokenValue    = document.getElementById('tokenValue');
+    const controlsContainer = document.getElementById('controlsContainer');
+    const addControlBtn = document.getElementById('addControlBtn');
+    const newChatBtn    = document.getElementById('newChatBtn');
+
+    let chatHistory = [];
+    let controls    = [];
 
     // API key (keep this secure in real use!)
     const apiKey = "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";
-
-    const chatHistory = [];
 
     // Your system prompt
     const systemPrompt = {
@@ -235,9 +281,103 @@ If asked your purpose, say: “I’m here to make life easier, one thought at a 
       `
     };
 
+    // Save and load chat history
+    function saveChats() {
+      localStorage.setItem('astroChatHistory', JSON.stringify(chatHistory));
+    }
+    function loadChats() {
+      const stored = localStorage.getItem('astroChatHistory');
+      if (stored) {
+        const chats = JSON.parse(stored);
+        chats.forEach(c => {
+          const sender = c.role === 'user' ? 'You' : 'Astro';
+          appendMessage(sender, c.content);
+          chatHistory.push(c);
+        });
+      }
+    }
+
+    // Save and load controls
+    function saveControls() {
+      localStorage.setItem('astroControls', JSON.stringify(controls));
+    }
+    function loadControls() {
+      const stored = localStorage.getItem('astroControls');
+      if (stored) {
+        controls = JSON.parse(stored);
+        controls.forEach(c => createControl(c.checked, c.id, false));
+      }
+    }
+
+    // Create a new control switch
+    function createControl(initialState = false, providedId = null, save = true) {
+      const controlId = providedId || (Date.now().toString() + Math.random().toString(36).substr(2,5));
+      if (save) {
+        controls.push({ id: controlId, checked: initialState });
+        saveControls();
+      }
+      const div = document.createElement('div');
+      div.classList.add('toggle-switch');
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = initialState;
+      checkbox.dataset.id = controlId;
+      checkbox.addEventListener('change', () => {
+        const idx = controls.findIndex(c => c.id === checkbox.dataset.id);
+        if (idx !== -1) {
+          controls[idx].checked = checkbox.checked;
+          saveControls();
+        }
+      });
+      const span = document.createElement('span');
+      span.textContent = `Control ${controlId.slice(-4)}`;
+      div.appendChild(checkbox);
+      div.appendChild(span);
+      controlsContainer.appendChild(div);
+    }
+
+    // Process AI commands to toggle controls
+    function processAssistantCommands(text) {
+      const toggleRegex = /@toggle:([0-9a-z]+)(?::(on|off))?/g;
+      let match;
+      while ((match = toggleRegex.exec(text)) !== null) {
+        const id = match[1];
+        const state = match[2] === 'off' ? false : (match[2] === 'on' ? true : null);
+        toggleControlById(id, state);
+      }
+    }
+
+    // Toggle control by ID
+    function toggleControlById(controlId, state = null) {
+      const checkbox = controlsContainer.querySelector(`input[data-id="${controlId}"]`);
+      if (!checkbox) return;
+      const newState = state === null ? !checkbox.checked : state;
+      checkbox.checked = newState;
+      const idx = controls.findIndex(c => c.id === controlId);
+      if (idx !== -1) {
+        controls[idx].checked = newState;
+        saveControls();
+      }
+    }
+
+    // New Chat functionality
+    newChatBtn.addEventListener('click', () => {
+      chatHistory = [];
+      saveChats();
+      chatLog.innerHTML = '';
+    });
+
     // Update displayed token count
     tokenSlider.addEventListener("input", () => {
       tokenValue.textContent = tokenSlider.value;
+    });
+
+    // Add control button
+    addControlBtn.addEventListener('click', () => createControl(false));
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadChats();
+      loadControls();
     });
 
     async function sendMessage() {
@@ -245,9 +385,10 @@ If asked your purpose, say: “I’m here to make life easier, one thought at a 
       if (!userText) return;
 
       appendMessage("You", userText);
+      chatHistory.push({ role: "user", content: userText });
+      saveChats();
       input.value = "";
       appendMessage("Astro", "<i>Thinking...</i>");
-      chatHistory.push({ role: "user", content: userText });
 
       const recent = chatHistory.slice(-8);
       const messagesToSend = [systemPrompt, ...recent];
@@ -263,19 +404,17 @@ If asked your purpose, say: “I’m here to make life easier, one thought at a 
             "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({
-            model,
-            messages: messagesToSend,
-            max_tokens
-          })
+          body: JSON.stringify({ model, messages: messagesToSend, max_tokens })
         });
         const data = await res.json();
         removeLastAstroThinking();
 
         if (data.choices && data.choices.length) {
           const reply = data.choices[0].message.content;
+          processAssistantCommands(reply);
           appendMessage("Astro", reply);
           chatHistory.push({ role: "assistant", content: reply });
+          saveChats();
 
           if (proSpeakToggle.checked) {
             speakPro(reply);
@@ -329,63 +468,6 @@ If asked your purpose, say: “I’m here to make life easier, one thought at a 
             "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({
-            model: "tts-1",
-            voice: "echo",
-            input: text
-          })
+          body: JSON.stringify({ model: "tts-1", voice: "echo", input: text })
         });
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        new Audio(url).play();
-      } catch (e) {
-        console.error("Pro Speak failed:", e);
-      }
-    }
-
-    <!-- Dot Section -->
-<div style="text-align: center; margin-top: 20px;">
-  <!-- The Dot -->
-  <div id="colorDot" style="
-    width: 50px; 
-    height: 50px; 
-    border-radius: 50%; 
-    background-color: red; /* Default color */
-    display: inline-block;
-  "></div>
-  <!-- Button to Change Color -->
-  <button onclick="changeDotColor()" style="
-    display: block; 
-    margin: 10px auto; 
-    padding: 10px 20px; 
-    background-color: #58a6ff; 
-    border: none; 
-    border-radius: 6px; 
-    color: white; 
-    font-weight: bold; 
-    cursor: pointer;
-    font-family: 'Julius Sans One', sans-serif;
-  ">Change Dot Color</button>
-</div>
-
-<script>
-  function changeDotColor() {
-    // Example colors array
-    const colors = ['red', 'blue', 'green', 'yellow', 'purple', 'orange'];
-    
-    // Pick a random color
-    const randomColor = colors[Math.floor(Math.random() * colors.length)];
-    
-    // Change the dot's color
-    const dot = document.getElementById('colorDot');
-    dot.style.backgroundColor = randomColor;
-
-    // Log the action (optional)
-    console.log(`Dot color changed to: ${randomColor}`);
-  }
-</script>
-
-
-  </script>
-</body>
-</html>
+        const blob = await res.bl
