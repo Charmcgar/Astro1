@@ -1,17 +1,225 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Astro Chat</title>
+  <title>Astro - AI Chatbot</title>
+  <link href="https://fonts.googleapis.com/css2?family=Julius+Sans+One&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      overflow: hidden;
+      font-family: 'Julius Sans One', sans-serif;
+      color: white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    #bgVideo {
+      position: fixed;
+      top: 0;
+      left: 0;
+      min-width: 100%;
+      min-height: 100%;
+      z-index: -1;
+      object-fit: cover;
+    }
+    .chat-container {
+      width: 90%;
+      max-width: 700px;
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 0 30px rgba(88, 166, 255, 0.3);
+      display: flex;
+      flex-direction: column;
+      backdrop-filter: blur(10px);
+      position: relative;
+    }
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+      color: #58a6ff;
+    }
+    .mode-toggle {
+      text-align: center;
+      margin-bottom: 20px;
+      font-size: 0.9em;
+    }
+    .messages {
+      flex: 1;
+      max-height: 400px;
+      overflow-y: auto;
+      margin-bottom: 15px;
+      padding-right: 10px;
+    }
+    .message {
+      margin-bottom: 10px;
+    }
+    .message strong {
+      color: #58a6ff;
+    }
+    .input-area {
+      display: flex;
+      gap: 10px;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 10px;
+      font-size: 1em;
+      border-radius: 6px;
+      border: none;
+      background-color: #222;
+      color: white;
+      font-family: 'Julius Sans One', sans-serif;
+    }
+    button {
+      padding: 10px 20px;
+      background-color: #58a6ff;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      font-family: 'Julius Sans One', sans-serif;
+    }
+    button:hover {
+      background-color: #4b8dd6;
+    }
+  </style>
 </head>
 <body>
-  <div id="chatLog"></div>
-  <input type="text" id="userInput" placeholder="Type your message here">
-  <label>
-    <input type="checkbox" id="smartModeToggle"> Smart Mode
-  </label>
+  <!-- Video Background -->
+  <video autoplay muted loop id="bgVideo">
+    <source src="logo.mp4" type="video/mp4">
+    Your browser does not support HTML5 video.
+  </video>
 
-  <script src="script.js"></script>
+  <div class="chat-container">
+    <h1>Astro</h1>
+    <div class="mode-toggle">
+      <label><input type="checkbox" id="smartModeToggle" /> Smart Mode (GPT-4)</label>
+    </div>
+    <div class="mode-toggle">
+      <label><input type="checkbox" id="proSpeakToggle" /> Pro Speak Mode (Voice Output)</label>
+    </div>
+
+    <div class="messages" id="chatLog"></div>
+
+    <div class="input-area">
+      <input type="text" id="userInput" placeholder="Ask Astro anything..." />
+      <button onclick="sendMessage()">Send</button>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const chatLog = document.getElementById('chatLog');
+      const input = document.getElementById('userInput');
+      const smartToggle = document.getElementById('smartModeToggle');
+      const proSpeakToggle = document.getElementById('proSpeakToggle');
+
+      const apiKey = atob("c2stc3RyaW5nLWluLXlvdXIta2V5"); // Replace with your actual Base64-encoded API key.
+
+      const systemPrompt = {
+        role: "system",
+        content: "You are Astro, a helpful AI assistant running on a secure private system."
+      };
+
+      let chatHistory = [];
+
+      async function sendMessage() {
+        const userText = input.value.trim();
+        if (!userText) return;
+
+        appendMessage("You", userText);
+        input.value = "";
+        appendMessage("Astro", "<i>Thinking...</i>");
+        chatHistory.push({ role: "user", content: userText });
+
+        const recent = chatHistory.slice(-8);
+        const model = smartToggle.checked ? "gpt-4" : "gpt-3.5-turbo";
+
+        try {
+          const res = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${apiKey}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              model,
+              messages: [systemPrompt, ...recent],
+              max_tokens: 100
+            })
+          });
+
+          const data = await res.json();
+          removeLastAstroThinking();
+
+          if (data.choices && data.choices.length) {
+            const reply = data.choices[0].message.content;
+            appendMessage("Astro", reply);
+            chatHistory.push({ role: "assistant", content: reply });
+
+            if (proSpeakToggle.checked) {
+              speakPro(reply);
+            }
+          } else {
+            appendMessage("Astro", "Could not get a response. Please try again.");
+          }
+        } catch (err) {
+          removeLastAstroThinking();
+          appendMessage("Astro", "An error occurred. Check the console for details.");
+          console.error(err);
+        }
+      }
+
+      function appendMessage(sender, message) {
+        const msg = document.createElement("div");
+        msg.classList.add("message");
+        msg.innerHTML = `<strong>${sender}:</strong> ${message}`;
+        chatLog.appendChild(msg);
+        chatLog.scrollTop = chatLog.scrollHeight;
+      }
+
+      function removeLastAstroThinking() {
+        const last = chatLog.lastChild;
+        if (last?.innerHTML.includes("<i>Thinking...</i>")) {
+          chatLog.removeChild(last);
+        }
+      }
+
+      async function speakPro(text) {
+        try {
+          const res = await fetch("https://api.openai.com/v1/audio/speech", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${apiKey}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              model: "tts-1",
+              voice: "echo",
+              input: text
+            })
+          });
+
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const audio = new Audio(url);
+          audio.play();
+        } catch (e) {
+          console.error("Pro Speak failed:", e);
+        }
+      }
+
+      input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") sendMessage();
+      });
+    });
+  </script>
 </body>
 </html>
