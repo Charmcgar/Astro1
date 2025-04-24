@@ -128,52 +128,52 @@
 
       let chatHistory = [];
 
-      async function sendMessage() {
-        const userText = input.value.trim();
-        if (!userText) return;
+    async function sendMessage() {
+    const userText = input.value.trim();
+    if (!userText) return;
 
-        appendMessage("You", userText);
-        input.value = "";
-        appendMessage("Astro", "<i>Thinking...</i>");
-        chatHistory.push({ role: "user", content: userText });
+    appendMessage("You", userText);
+    input.value = "";
+    appendMessage("Astro", "<i>Thinking...</i>");
+    chatHistory.push({ role: "user", content: userText });
 
-        const recent = chatHistory.slice(-8);
-        const model = smartToggle.checked ? "gpt-4" : "gpt-3.5-turbo";
+    const recent = chatHistory.slice(-8);
+    const model = smartToggle.checked ? "gpt-4" : "gpt-3.5-turbo";
 
-        try {
-          const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    try {
+        const res = await fetch("https://api.openai.com/v1/chat/completions", {
             method: "POST",
             headers: {
-              "Authorization": `Bearer ${apiKey}`,
-              "Content-Type": "application/json"
+                "Authorization": `Bearer ${apiKey}`,
+                "Content-Type": "application/json"
             },
             body: JSON.stringify({
-              model,
-              messages: [systemPrompt, ...recent],
-              max_tokens: 100
+                model,
+                messages: [systemPrompt, ...recent],
+                max_tokens: 100
             })
-          });
+        });
 
-          const data = await res.json();
-          removeLastAstroThinking();
+        const data = await res.json();
+        removeLastAstroThinking();
 
-          if (data.choices && data.choices.length) {
+        if (data.choices && data.choices.length) {
             const reply = data.choices[0].message.content;
             appendMessage("Astro", reply);
             chatHistory.push({ role: "assistant", content: reply });
 
             if (proSpeakToggle.checked) {
-              speakPro(reply);
+                speakPro(reply);
             }
-          } else {
-            appendMessage("Astro", "Hello! Unfortunately, Astro Cloud is being updated currently. Try tommorow? ");
-          }
-        } catch (err) {
-          removeLastAstroThinking();
-          appendMessage("Astro", "An error occurred. Check the console for details.");
-          console.error(err);
+        } else {
+            appendMessage("Astro", "Hello! Unfortunately, Astro Cloud is being updated currently. Try tomorrow?");
         }
-      }
+    } catch (err) {
+        removeLastAstroThinking();
+        appendMessage("Astro", "An error occurred. Check the console for details.");
+        console.error(err);
+    }
+}
 
       function appendMessage(sender, message) {
         const msg = document.createElement("div");
