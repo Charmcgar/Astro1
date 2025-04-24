@@ -198,16 +198,16 @@
 
   <script>
     const chatLog       = document.getElementById('chatLog');
-    const input         = document.getElementById('userInput');
+    var input         = document.getElementById('userInput');
     const smartToggle   = document.getElementById('smartModeToggle');
     const proSpeakToggle= document.getElementById('proSpeakToggle');
     const tokenSlider   = document.getElementById('tokenSlider');
     const tokenValue    = document.getElementById('tokenValue');
 
     // API key (keep this secure in real use!)
-    const apiKey = 'API';
+    var apiKey = API1;
 
-    const chatHistory = [];
+    var chatHistory = [];
 
     // Your system prompt
     const systemPrompt = {
