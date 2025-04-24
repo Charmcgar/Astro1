@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Astro - AI</title>
   <link href="https://fonts.googleapis.com/css2?family=Julius+Sans+One&display=swap" rel="stylesheet">
   <style>
@@ -38,6 +39,7 @@
       box-shadow: 0 0 30px rgba(88, 166, 255, 0.3);
       display: flex;
       flex-direction: column;
+      -webkit-backdrop-filter: blur(10px);
       backdrop-filter: blur(10px);
       position: relative;
       margin-bottom: 20px;
@@ -141,9 +143,8 @@
       color: #aaa;
     }
 
-    .token-slider-container input[type="range"] {
-      width: 60%;
-    }
+
+    
 
     .token-slider-container span {
       margin-left: 8px;
@@ -169,7 +170,6 @@
   </style>
 </head>
 <body>
-  <!-- Video Background -->
   <video autoplay muted loop id="bgVideo">
     <source src="assets/logo.mp4" type="video/mp4">
     Your browser does not support HTML5 video.
@@ -177,55 +177,46 @@
 
   <div class="chat-container">
     <h1>Astro</h1>
-
-    <!-- Smart Mode Toggle -->
     <div class="mode-toggle">
       <label class="toggle-switch">
         <input type="checkbox" id="smartModeToggle" />
         <span>Smart Mode (GPT-4)</span>
       </label>
     </div>
-
-    <!-- Pro Speak Toggle -->
     <div class="mode-toggle">
       <label class="toggle-switch">
         <input type="checkbox" id="proSpeakToggle" />
         <span>Pro Speak Mode (OpenAI Voice)</span>
       </label>
     </div>
-
     <div class="messages" id="chatLog"></div>
-
     <div class="input-area">
       <input type="text" id="userInput" placeholder="Ask Astro anything..." />
       <button onclick="sendMessage()">Send</button>
     </div>
-
-    <!-- Token Slider -->
     <div class="token-slider-container">
       Max Tokens:
-      <input type="range" id="tokenSlider" min="100" max="4000" value="1000" />
+      <label for="tokenSlider">Adjust Max Tokens:</label>
+      <input type="range" id="tokenSlider" min="100" max="4000" value="1000" title="Adjust the maximum number of tokens" />
       <span id="tokenValue">1000</span>
     </div>
   </div>
 
   <div class="chat-container speech-section">
-    <textarea id="text-area" placeholder="Your speech will appear here..."></textarea><br>
     <button id="stt-button">Start Speech-to-Text</button>
   </div>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.4/purify.min.js"></script>
   <script>
-    const chatLog       = document.getElementById('chatLog');
-    const input         = document.getElementById('userInput');
-    const smartToggle   = document.getElementById('smartModeToggle');
-    const proSpeakToggle= document.getElementById('proSpeakToggle');
-    const tokenSlider   = document.getElementById('tokenSlider');
-    const tokenValue    = document.getElementById('tokenValue');
-    var API
-    const apiKey        = (API1); // <-- Replace this with your actual key!
+    const chatLog = document.getElementById('chatLog');
+    const input = document.getElementById('userInput');
+    const smartToggle = document.getElementById('smartModeToggle');
+    const proSpeakToggle = document.getElementById('proSpeakToggle');
+    const tokenSlider = document.getElementById('tokenSlider');
+    const tokenValue = document.getElementById('tokenValue');
+    const apiKey = localStorage.getItem('astro_api_key') || 'your-api-key';
 
     const chatHistory = [];
-
     const systemPrompt = {
       role: "system",
       content: `You are Astro... (shortened here for brevity)`
@@ -239,7 +230,7 @@
       const userText = input.value.trim();
       if (!userText) return;
 
-      appendMessage("You", userText);
+      appendMessage("You", DOMPurify.sanitize(userText));
       input.value = "";
       appendMessage("Astro", "<i>Thinking...</i>");
       chatHistory.push({ role: "user", content: userText });
@@ -256,18 +247,14 @@
             "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({
-            model,
-            messages: messagesToSend,
-            max_tokens
-          })
+          body: JSON.stringify({ model, messages: messagesToSend, max_tokens })
         });
         const data = await res.json();
         removeLastAstroThinking();
 
         if (data.choices && data.choices.length) {
           const reply = data.choices[0].message.content;
-          appendMessage("Astro", reply);
+          appendMessage("Astro", DOMPurify.sanitize(reply));
           chatHistory.push({ role: "assistant", content: reply });
 
           if (proSpeakToggle.checked) {
@@ -321,11 +308,7 @@
             "Authorization": `Bearer ${apiKey}`,
             "Content-Type": "application/json"
           },
-          body: JSON.stringify({
-            model: "tts-1",
-            voice: "echo",
-            input: text
-          })
+          body: JSON.stringify({ model: "tts-1", voice: "echo", input: text })
         });
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
@@ -335,7 +318,6 @@
       }
     }
 
-    // STT
     const sttButton = document.getElementById('stt-button');
     const textArea = document.getElementById('text-area');
 
@@ -350,11 +332,12 @@
       });
 
       recognition.addEventListener('result', (event) => {
-        const transcript = Array.from(event.results)
-          .map(result => result[0].transcript)
-          .join('');
-        textArea.value = transcript;
-      });
+  const transcript = Array.from(event.results)
+    .map(result => result[0].transcript)
+    .join('');
+  input.value = transcript;
+});
+
 
       recognition.addEventListener('error', (event) => {
         console.error('Speech Recognition Error:', event.error);
