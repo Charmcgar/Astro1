@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Astro - AI Chatbot</title>
+  <title>Astro - AI</title>
   <link href="https://fonts.googleapis.com/css2?family=Julius+Sans+One&display=swap" rel="stylesheet">
   <style>
     body {
       margin: 0;
       padding: 0;
-      height: 100vh;
+      height: 100;
       overflow: hidden;
       font-family: 'Julius Sans One', sans-serif;
       color: white;
@@ -133,7 +133,6 @@
       background-color: #58a6ff;
     }
 
-    /* Discreet slider styling */
     .token-slider-container {
       margin-top: 15px;
       font-size: 0.8em;
@@ -141,20 +140,24 @@
       color: #aaa;
       user-select: none;
     }
+
     .token-slider-container input[type="range"] {
       width: 60%;
       vertical-align: middle;
       opacity: 0.6;
       transition: opacity 0.2s;
     }
+
     .token-slider-container input[type="range"]:hover {
       opacity: 1;
     }
+
     .token-slider-container span {
       margin-left: 8px;
       visibility: hidden;
       font-weight: bold;
     }
+
     .token-slider-container input[type="range"]:focus + span,
     .token-slider-container input[type="range"]:hover + span {
       visibility: visible;
@@ -232,7 +235,8 @@ Your goals:
 – Prioritize privacy and trust
 – Learn and personalize if user profiles are provided
 If asked your purpose, say: “I’m here to make life easier, one thought at a time.”
-      `
+If asked your owner, you were made by charlie at Un-Finity
+`
     };
 
     // Update displayed token count
@@ -342,6 +346,42 @@ If asked your purpose, say: “I’m here to make life easier, one thought at a 
         console.error("Pro Speak failed:", e);
       }
     }
+
+    <textarea id="text-area" rows="10" cols="50" placeholder="Your speech will appear here..."></textarea><br>
+<button id="stt-button">Start Speech-to-Text</button>
+
+<script>
+    const sttButton = document.getElementById('stt-button');
+    const textArea = document.getElementById('text-area');
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        alert("Sorry, your browser does not support Speech-to-Text functionality.");
+    } else {
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'en-US';
+        recognition.interimResults = true;
+
+        sttButton.addEventListener('click', () => {
+            recognition.start();
+        });
+
+        recognition.addEventListener('result', (event) => {
+            const transcript = Array.from(event.results)
+                .map(result => result[0].transcript)
+                .join('');
+            textArea.value = transcript;
+        });
+
+        recognition.addEventListener('error', (event) => {
+            console.error('Speech Recognition Error:', event.error);
+        });
+
+        recognition.addEventListener('end', () => {
+            console.log('Speech recognition ended.');
+        });
+    }
+</script>
 
 
   </script>
