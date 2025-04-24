@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Astro - AI</title>
   <link href="https://fonts.googleapis.com/css2?family=Julius+Sans+One&display=swap" rel="stylesheet">
-  <style>
+  <style>  
     body {
       margin: 0;
       padding: 0;
@@ -143,9 +143,6 @@
       color: #aaa;
     }
 
-
-    
-
     .token-slider-container span {
       margin-left: 8px;
       font-weight: bold;
@@ -189,6 +186,9 @@
         <span>Pro Speak Mode (OpenAI Voice)</span>
       </label>
     </div>
+    <div class="mode-toggle">
+      <button onclick="unlockInfiniteUses()">Unlock Infinite Uses</button>
+    </div>
     <div class="messages" id="chatLog"></div>
     <div class="input-area">
       <input type="text" id="userInput" placeholder="Ask Astro anything..." />
@@ -226,7 +226,27 @@
       tokenValue.textContent = tokenSlider.value;
     });
 
+    const usageKey = 'astro_usage_count';
+    let usageCount = parseInt(localStorage.getItem(usageKey), 10);
+    if (isNaN(usageCount)) usageCount = 0;
+
+    function unlockInfiniteUses() {
+      const code = prompt("Enter unlock code:");
+      if (code === "1608") {
+        localStorage.setItem(usageKey, -1);
+        usageCount = -1;
+        alert("Infinite uses unlocked! 🎉");
+      } else {
+        alert("Incorrect code.");
+      }
+    }
+
     async function sendMessage() {
+      if (usageCount >= 5 && usageCount !== -1) {
+        appendMessage("Astro", "You have reached the maximum of 5 uses. Please try again later.");
+        return;
+      }
+
       const userText = input.value.trim();
       if (!userText) return;
 
@@ -262,7 +282,13 @@
           } else {
             speak(reply);
           }
+
+          if (usageCount !== -1) {
+            usageCount++;
+            localStorage.setItem(usageKey, usageCount);
+          }
         } else {
+          if (usageCount !== -1) usageCount++;
           appendMessage("Astro", "Hmm, no valid reply. Try again?");
         }
       } catch (err) {
@@ -316,38 +342,6 @@
       } catch (e) {
         console.error("Pro Speak failed:", e);
       }
-    }
-
-    const sttButton = document.getElementById('stt-button');
-    const textArea = document.getElementById('text-area');
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (SpeechRecognition) {
-      const recognition = new SpeechRecognition();
-      recognition.lang = 'en-US';
-      recognition.interimResults = true;
-
-      sttButton.addEventListener('click', () => {
-        recognition.start();
-      });
-
-      recognition.addEventListener('result', (event) => {
-  const transcript = Array.from(event.results)
-    .map(result => result[0].transcript)
-    .join('');
-  input.value = transcript;
-});
-
-
-      recognition.addEventListener('error', (event) => {
-        console.error('Speech Recognition Error:', event.error);
-      });
-
-      recognition.addEventListener('end', () => {
-        console.log('Speech recognition ended.');
-      });
-    } else {
-      alert("Speech-to-text not supported in this browser.");
     }
   </script>
 </body>
